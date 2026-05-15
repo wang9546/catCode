@@ -10,7 +10,6 @@ def require_env(name: str) -> str:
     return value
 
 
-ANTHROPIC_API_KEY = require_env("ANTHROPIC_API_KEY")
 FEISHU_APP_ID = require_env("FEISHU_APP_ID")
 FEISHU_APP_SECRET = require_env("FEISHU_APP_SECRET")
 WORK_DIR = os.getenv("WORK_DIR", "/root/workspace")
