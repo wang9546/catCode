@@ -16,4 +16,3 @@ FEISHU_APP_SECRET = os.getenv("FEISHU_APP_SECRET", "")
 
 # ── 通用配置 ──────────────────────────────
 WORK_DIR = os.getenv("WORK_DIR", "/root/workspace")
-SESSION_STORE = os.getenv("SESSION_STORE", "")  # 默认 ~/.catcode/sessions.json
