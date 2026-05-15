@@ -8,7 +8,7 @@ User=catcode
 Group=catcode
 WorkingDirectory=/opt/catcode
 EnvironmentFile=/opt/catcode/.env
-ExecStart=/root/.local/bin/uv run uvicorn catcode.main:app --host 0.0.0.0 --port ${PORT:-3000}
+ExecStart=/root/.local/bin/uv run catcode
 Restart=always
 RestartSec=5
 

@@ -13,4 +13,3 @@ def require_env(name: str) -> str:
 FEISHU_APP_ID = require_env("FEISHU_APP_ID")
 FEISHU_APP_SECRET = require_env("FEISHU_APP_SECRET")
 WORK_DIR = os.getenv("WORK_DIR", "/root/workspace")
-PORT = int(os.getenv("PORT", "3000"))
