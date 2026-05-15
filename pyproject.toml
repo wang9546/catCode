@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "飞书机器人 → Claude Code 桥接服务"
 requires-python = ">=3.12"
 dependencies = [
-    "anthropic>=0.102.0",
     "fastapi>=0.136.1",
     "httpx>=0.28.1",
     "uvicorn>=0.47.0",
