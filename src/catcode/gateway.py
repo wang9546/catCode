@@ -54,7 +54,7 @@ class Gateway:
                     await channel.send(msg.conversation_id, "会话已重置，开始新对话。")
                     return
 
-                reaction_id = await channel.add_reaction(msg.message_id, "DONE")
+                reaction_id = await channel.add_reaction(msg.message_id, "KEYBOARD")
                 result = await run_agent(msg.content_text, cwd=conv_dir)
                 reply = result or "已完成（无文字输出）"
 
