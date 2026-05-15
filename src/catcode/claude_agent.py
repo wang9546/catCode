@@ -24,6 +24,8 @@ async def run_agent(prompt: str, max_turns: int = 10) -> str:
         "--output-format", "text",
         "--no-session-persistence",
         "--max-budget-usd", "5",
+        "--add-dir", config.WORK_DIR,
+        "--permission-mode", "acceptEdits",
         prompt,
     ]
 
