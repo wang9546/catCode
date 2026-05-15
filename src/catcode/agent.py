@@ -13,13 +13,24 @@ logger = logging.getLogger(__name__)
 CLAUDE_BIN = shutil.which("claude") or "claude"
 
 
+class SessionBusyError(Exception):
+    """session_id 被占用，需更换"""
+
+
 async def run_agent(prompt: str, session_id: str | None = None) -> str:
     """调用本地 Claude Code CLI 执行任务。
 
     Args:
         prompt: 用户输入
         session_id: 可选，指定后 Claude Code 会加载/保存会话上下文
+
+    Raises:
+        SessionBusyError: session 被占用，调用方应换新 session 重试
     """
+    return await _call_claude(prompt, session_id)
+
+
+async def _call_claude(prompt: str, session_id: str | None) -> str:
     Path(config.WORK_DIR).mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
@@ -53,12 +64,16 @@ async def run_agent(prompt: str, session_id: str | None = None) -> str:
 
     try:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=600)
-        output = stdout.decode("utf-8", errors="replace").strip()
-        if stderr:
-            err_text = stderr.decode("utf-8", errors="replace").strip()
-            if err_text:
-                logger.warning("claude stderr: %s", err_text[:500])
-        return output or "已完成（无文字输出）"
     except asyncio.TimeoutError:
         proc.kill()
         return "任务执行超时 (10 分钟)"
+
+    output = stdout.decode("utf-8", errors="replace").strip()
+    err_text = stderr.decode("utf-8", errors="replace").strip()
+
+    if err_text:
+        logger.warning("claude stderr: %s", err_text[:500])
+        if "already in use" in err_text:
+            raise SessionBusyError(err_text)
+
+    return output or "已完成（无文字输出）"
