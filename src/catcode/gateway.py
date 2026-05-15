@@ -54,7 +54,7 @@ class Gateway:
                     await channel.send(msg.conversation_id, "会话已重置，开始新对话。")
                     return
 
-                status_msg_id = await channel.send(msg.conversation_id, "⌨️ ...")
+                status_msg_id = await channel.send(msg.conversation_id, "⌨️")
                 result = await run_agent(msg.content_text, cwd=conv_dir)
                 reply = result or "已完成（无文字输出）"
 
