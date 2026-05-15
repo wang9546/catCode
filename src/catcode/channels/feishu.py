@@ -56,5 +56,9 @@ class FeishuChannel(AbstractChannel):
         logger.info("飞书渠道启动")
         await self._client.start_background()
 
-    async def send(self, conversation_id: str, text: str) -> None:
-        await self._client.send(conversation_id, text)
+    async def send(self, conversation_id: str, text: str) -> str | None:
+        result = await self._client.send(conversation_id, text)
+        return result.message_id
+
+    async def edit(self, message_id: str, text: str) -> None:
+        await self._client.edit_message(message_id, text)

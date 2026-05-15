@@ -49,8 +49,8 @@ class Gateway:
         lock = self._queue_locks.setdefault(conv_key, asyncio.Lock())
 
         async with lock:
+            status_msg_id: str | None = None
             try:
-                # 检测重置命令
                 if msg.content_text.strip() in RESET_KEYWORDS:
                     self._session.reset(conv_key)
                     await channel.send(msg.conversation_id, "会话已重置，开始新对话。")
@@ -58,14 +58,25 @@ class Gateway:
 
                 session_id = self._session.get_session_id(conv_key)
 
-                await channel.send(msg.conversation_id, "处理中...")
+                # 先发键盘表情占位
+                status_msg_id = await channel.send(msg.conversation_id, "⌨️ ...")
+
                 result = await run_agent(msg.content_text, session_id=session_id)
                 reply = result or "已完成（无文字输出）"
-                await channel.send(msg.conversation_id, reply)
+
+                # 原地编辑替换为结果
+                if status_msg_id:
+                    await channel.edit(status_msg_id, reply)
+                else:
+                    await channel.send(msg.conversation_id, reply)
 
             except Exception as e:
                 logger.exception("处理消息失败 msg_id=%s", msg.message_id)
+                err_text = f"⌨️ ❌ 出错: {e}"
                 try:
-                    await channel.send(msg.conversation_id, f"出错: {e}")
+                    if status_msg_id:
+                        await channel.edit(status_msg_id, err_text)
+                    else:
+                        await channel.send(msg.conversation_id, err_text)
                 except Exception:
                     pass

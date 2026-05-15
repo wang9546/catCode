@@ -10,7 +10,7 @@ OnMessageCallback = Callable[[Message], Awaitable[None]]
 
 
 class AbstractChannel(ABC):
-    """渠道基类。实现 start() 和 send() 即可接入网关。
+    """渠道基类。
 
     属性:
         channel_type: 渠道标识，如 "feishu"、"wecom"
@@ -24,6 +24,10 @@ class AbstractChannel(ABC):
         ...
 
     @abstractmethod
-    async def send(self, conversation_id: str, text: str) -> None:
-        """向指定会话发送文本消息。"""
+    async def send(self, conversation_id: str, text: str) -> str | None:
+        """发送消息，返回 message_id（不支持返回 None）。"""
         ...
+
+    async def edit(self, message_id: str, text: str) -> None:
+        """编辑已发送的消息（原地替换）。默认回退到 send。"""
+        await self.send(None, text)  # type: ignore[arg-type]
