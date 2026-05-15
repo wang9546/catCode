@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from .agent import run_agent, SessionBusyError
+from .agent import run_agent
 from .channels.base import AbstractChannel
 from .message import Message
 from .session_manager import SessionManager
@@ -61,9 +61,7 @@ class Gateway:
                 # 先发键盘表情占位
                 status_msg_id = await channel.send(msg.conversation_id, "⌨️ ...")
 
-                result = await _call_agent_with_retry(
-                    msg.content_text, session_id, conv_key, self._session
-                )
+                result = await run_agent(msg.content_text, session_id=session_id)
                 reply = result or "已完成（无文字输出）"
 
                 # 原地编辑替换为结果
@@ -82,18 +80,3 @@ class Gateway:
                         await channel.send(msg.conversation_id, err_text)
                 except Exception:
                     pass
-
-
-async def _call_agent_with_retry(
-    prompt: str,
-    session_id: str,
-    conv_key: str,
-    session_mgr: SessionManager,
-) -> str:
-    """调用 agent，遇到 SessionBusyError 自动换 session 重试一次"""
-    try:
-        return await run_agent(prompt, session_id=session_id)
-    except SessionBusyError:
-        logger.info("Session 被占用，更换 session 重试: %s", conv_key)
-        new_id = session_mgr.reset(conv_key)
-        return await run_agent(prompt, session_id=new_id)
