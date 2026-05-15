@@ -30,7 +30,7 @@ async def run_agent(prompt: str, cwd: str) -> str:
         "--output-format", "text",
         "--max-budget-usd", "5",
         "--add-dir", cwd,
-        "--permission-mode", "acceptEdits",
+        "--permission-mode", "auto",
         prompt,
     ]
 
