@@ -34,12 +34,41 @@ def _kill_session_holder(session_id: str) -> None:
 async def run_agent(prompt: str, session_id: str | None = None) -> str:
     """调用本地 Claude Code CLI 执行任务。
 
-    session_id 被占用时自动 kill 旧进程、等待释放后重试（保留上下文）。
+    session_id 被占用时自动 kill 旧进程、等待后重试，最多 3 次。
     """
-    return await _call_claude_with_retry(prompt, session_id)
+    return await _call_with_retry(prompt, session_id, max_retries=3)
 
 
-async def _call_claude_with_retry(prompt: str, session_id: str | None) -> str:
+async def _call_with_retry(
+    prompt: str, session_id: str | None, max_retries: int
+) -> str:
+    last_error = ""
+    for attempt in range(max_retries):
+        output, err = await _call_claude(prompt, session_id)
+
+        if not err or "already in use" not in err:
+            return output or "已完成（无文字输出）"
+
+        last_error = err
+        logger.warning(
+            "Session 被占用 (attempt %d/%d): %s",
+            attempt + 1, max_retries, session_id,
+        )
+
+        if session_id:
+            _kill_session_holder(session_id)
+            # 递增等待: 2s → 5s → 10s
+            delay = [2, 5, 10][attempt]
+            logger.info("等待 %ds 后重试...", delay)
+            await asyncio.sleep(delay)
+        else:
+            break
+
+    return f"Session 暂时不可用: {last_error[:200]}"
+
+
+async def _call_claude(prompt: str, session_id: str | None) -> tuple[str, str]:
+    """单次调用 claude，返回 (stdout, stderr)"""
     Path(config.WORK_DIR).mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
@@ -75,63 +104,11 @@ async def _call_claude_with_retry(prompt: str, session_id: str | None) -> str:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=600)
     except asyncio.TimeoutError:
         proc.kill()
-        return "任务执行超时 (10 分钟)"
-
-    output = stdout.decode("utf-8", errors="replace").strip()
-    err_text = stderr.decode("utf-8", errors="replace").strip()
-
-    if err_text:
-        logger.warning("claude stderr: %s", err_text[:500])
-
-        if session_id and "already in use" in err_text:
-            logger.info("Session 被占用，kill 旧进程后重试: %s", session_id)
-            _kill_session_holder(session_id)
-            await asyncio.sleep(2)
-            return await _call_claude_once(prompt, session_id)
-
-    return output or "已完成（无文字输出）"
-
-
-async def _call_claude_once(prompt: str, session_id: str | None) -> str:
-    """单次调用 claude，不处理重试"""
-    Path(config.WORK_DIR).mkdir(parents=True, exist_ok=True)
-
-    env = os.environ.copy()
-    env.setdefault("CLAUDE_CODE_SIMPLE", "1")
-
-    cmd = [
-        CLAUDE_BIN,
-        "--print",
-        "--output-format", "text",
-        "--max-budget-usd", "5",
-        "--add-dir", config.WORK_DIR,
-        "--permission-mode", "acceptEdits",
-    ]
-
-    if session_id:
-        cmd += ["--session-id", session_id]
-    else:
-        cmd.append("--no-session-persistence")
-
-    cmd.append(prompt)
-
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        cwd=config.WORK_DIR,
-        env=env,
-    )
-
-    try:
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=600)
-    except asyncio.TimeoutError:
-        proc.kill()
-        return "任务执行超时 (10 分钟)"
+        return "任务执行超时 (10 分钟)", ""
 
     output = stdout.decode("utf-8", errors="replace").strip()
     err_text = stderr.decode("utf-8", errors="replace").strip()
     if err_text:
         logger.warning("claude stderr: %s", err_text[:500])
 
-    return output or "已完成（无文字输出）"
+    return output, err_text
