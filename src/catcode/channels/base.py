@@ -5,8 +5,9 @@ from collections.abc import Callable, Awaitable
 
 from ..message import Message
 
-
 OnMessageCallback = Callable[[Message], Awaitable[None]]
+# card_action: action_id, value dict → None
+CardActionCallback = Callable[[str, dict], Awaitable[None]]
 
 
 class AbstractChannel(ABC):
@@ -19,7 +20,11 @@ class AbstractChannel(ABC):
     channel_type: str
 
     @abstractmethod
-    async def start(self, on_message: OnMessageCallback) -> None:
+    async def start(
+        self,
+        on_message: OnMessageCallback,
+        on_card_action: CardActionCallback | None = None,
+    ) -> None:
         """启动渠道连接，收到消息时调用 on_message(message)。"""
         ...
 
@@ -39,3 +44,8 @@ class AbstractChannel(ABC):
     async def remove_reaction(self, message_id: str, reaction_id: str) -> None:
         """移除消息的表情回应。默认无操作。"""
         pass
+
+    async def send_card(self, conversation_id: str, card: dict) -> str | None:
+        """发送交互卡片消息。默认回退到 send 文本。"""
+        title = card.get("header", {}).get("title", {}).get("content", "")
+        return await self.send(conversation_id, str(title))
