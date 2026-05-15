@@ -60,7 +60,7 @@ class Gateway:
 
                 if reaction_id:
                     await channel.remove_reaction(msg.message_id, reaction_id)
-                    await channel.add_reaction(msg.message_id, "Done")
+                    await channel.add_reaction(msg.message_id, "DONE")
                 await channel.send(msg.conversation_id, reply)
 
             except Exception as e:
