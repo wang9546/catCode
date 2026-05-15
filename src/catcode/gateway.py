@@ -47,30 +47,28 @@ class Gateway:
         lock = self._queue_locks.setdefault(conv_key, asyncio.Lock())
 
         async with lock:
-            status_msg_id: str | None = None
+            reaction_id: str | None = None
             try:
                 if msg.content_text.strip() in RESET_KEYWORDS:
                     reset_session(conv_dir)
                     await channel.send(msg.conversation_id, "会话已重置，开始新对话。")
                     return
 
-                status_msg_id = await channel.send(msg.conversation_id, "[敲键盘]")
+                reaction_id = await channel.add_reaction(msg.message_id, "⏳")
                 result = await run_agent(msg.content_text, cwd=conv_dir)
                 reply = result or "已完成（无文字输出）"
 
-                if status_msg_id:
-                    await channel.edit(status_msg_id, reply)
-                else:
-                    await channel.send(msg.conversation_id, reply)
+                if reaction_id:
+                    await channel.remove_reaction(msg.message_id, reaction_id)
+                await channel.send(msg.conversation_id, reply)
 
             except Exception as e:
                 logger.exception("处理消息失败 msg_id=%s", msg.message_id)
-                err_text = f"⌨️ ❌ 出错: {e}"
+                err_text = f"❌ 出错: {e}"
                 try:
-                    if status_msg_id:
-                        await channel.edit(status_msg_id, err_text)
-                    else:
-                        await channel.send(msg.conversation_id, err_text)
+                    if reaction_id:
+                        await channel.remove_reaction(msg.message_id, reaction_id)
+                    await channel.send(msg.conversation_id, err_text)
                 except Exception:
                     pass
 

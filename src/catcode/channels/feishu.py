@@ -62,3 +62,13 @@ class FeishuChannel(AbstractChannel):
 
     async def edit(self, message_id: str, text: str) -> None:
         await self._client.edit_message(message_id, text)
+
+    async def add_reaction(self, message_id: str, emoji_type: str) -> str | None:
+        result = await self._client.add_reaction(message_id, emoji_type)
+        if result.success and result.raw:
+            data = result.raw.get("data", {})
+            return data.get("reaction_id") if isinstance(data, dict) else None
+        return None
+
+    async def remove_reaction(self, message_id: str, reaction_id: str) -> None:
+        await self._client.remove_reaction(message_id, reaction_id)

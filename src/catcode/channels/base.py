@@ -31,3 +31,11 @@ class AbstractChannel(ABC):
     async def edit(self, message_id: str, text: str) -> None:
         """编辑已发送的消息（原地替换）。默认回退到 send。"""
         await self.send(None, text)  # type: ignore[arg-type]
+
+    async def add_reaction(self, message_id: str, emoji_type: str) -> str | None:
+        """给消息添加表情回应，返回 reaction_id。默认无操作。"""
+        return None
+
+    async def remove_reaction(self, message_id: str, reaction_id: str) -> None:
+        """移除消息的表情回应。默认无操作。"""
+        pass
