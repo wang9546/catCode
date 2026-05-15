@@ -10,6 +10,10 @@ def require_env(name: str) -> str:
     return value
 
 
-FEISHU_APP_ID = require_env("FEISHU_APP_ID")
-FEISHU_APP_SECRET = require_env("FEISHU_APP_SECRET")
+# ── 频道配置 ──────────────────────────────
+FEISHU_APP_ID = os.getenv("FEISHU_APP_ID", "")
+FEISHU_APP_SECRET = os.getenv("FEISHU_APP_SECRET", "")
+
+# ── 通用配置 ──────────────────────────────
 WORK_DIR = os.getenv("WORK_DIR", "/root/workspace")
+SESSION_STORE = os.getenv("SESSION_STORE", "")  # 默认 ~/.catcode/sessions.json

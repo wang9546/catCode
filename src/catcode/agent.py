@@ -1,3 +1,5 @@
+"""Claude Code Agent — 调用本地 claude CLI"""
+
 import asyncio
 import logging
 import os
@@ -11,8 +13,13 @@ logger = logging.getLogger(__name__)
 CLAUDE_BIN = shutil.which("claude") or "claude"
 
 
-async def run_agent(prompt: str, max_turns: int = 10) -> str:
-    """调用本地 Claude Code CLI 执行任务，返回文本结果"""
+async def run_agent(prompt: str, session_id: str | None = None) -> str:
+    """调用本地 Claude Code CLI 执行任务。
+
+    Args:
+        prompt: 用户输入
+        session_id: 可选，指定后 Claude Code 会加载/保存会话上下文
+    """
     Path(config.WORK_DIR).mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
@@ -22,12 +29,17 @@ async def run_agent(prompt: str, max_turns: int = 10) -> str:
         CLAUDE_BIN,
         "--print",
         "--output-format", "text",
-        "--no-session-persistence",
         "--max-budget-usd", "5",
         "--add-dir", config.WORK_DIR,
         "--permission-mode", "acceptEdits",
-        prompt,
     ]
+
+    if session_id:
+        cmd += ["--session-id", session_id]
+    else:
+        cmd.append("--no-session-persistence")
+
+    cmd.append(prompt)
 
     logger.info("执行 claude: %s ...", prompt[:80])
 
