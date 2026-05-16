@@ -56,6 +56,7 @@ class Gateway:
         self._queue_locks: dict[str, asyncio.Lock] = {}
         self._work_dir = work_dir
         self._hook_port = hook_port
+        self._hook_script: str = ""
         # approval_id → {"status": "pending"|"approved"|"denied"}
         self._pending_approvals: dict[str, dict] = {}
 
@@ -68,7 +69,7 @@ class Gateway:
             logger.warning("没有注册任何渠道")
             return
 
-        _setup_hook(self._work_dir, self._hook_port)
+        self._hook_script = _setup_hook(self._work_dir, self._hook_port)
 
         async def on_message(msg: Message) -> None:
             await self._dispatch(msg)
@@ -167,6 +168,7 @@ class Gateway:
                     await channel.send(msg.conversation_id, "会话已重置，开始新对话。")
                     return
 
+                _write_conv_settings(conv_dir, self._hook_script)
                 reaction_id = await channel.add_reaction(msg.message_id, "Typing")
                 result = await run_agent(
                     msg.content_text,
@@ -191,10 +193,9 @@ class Gateway:
                     pass
 
 
-def _setup_hook(work_dir: str, port: int) -> None:
-    """在 work_dir/.claude/ 写入 hook 脚本和 settings.json。"""
-    claude_dir = os.path.join(work_dir, ".claude")
-    hooks_dir = os.path.join(claude_dir, "hooks")
+def _setup_hook(work_dir: str, port: int) -> str:
+    """写入共享 hook 脚本，返回脚本绝对路径。"""
+    hooks_dir = os.path.join(work_dir, ".claude", "hooks")
     os.makedirs(hooks_dir, exist_ok=True)
 
     script_path = os.path.join(hooks_dir, "catcode-approve.sh")
@@ -202,7 +203,19 @@ def _setup_hook(work_dir: str, port: int) -> None:
         f.write(_HOOK_SCRIPT)
     os.chmod(script_path, os.stat(script_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
 
+    logger.info("Hook 脚本已写入 %s", script_path)
+    return script_path
+
+
+def _write_conv_settings(conv_dir: str, script_path: str) -> None:
+    """在 conv_dir/.claude/ 写入 settings.json，使 hook 对该会话生效。"""
+    claude_dir = os.path.join(conv_dir, ".claude")
+    os.makedirs(claude_dir, exist_ok=True)
+
     settings_path = os.path.join(claude_dir, "settings.json")
+    if os.path.exists(settings_path):
+        return
+
     settings = {
         "hooks": {
             "PreToolUse": [
@@ -215,8 +228,7 @@ def _setup_hook(work_dir: str, port: int) -> None:
     }
     with open(settings_path, "w") as f:
         json.dump(settings, f, indent=2, ensure_ascii=False)
-
-    logger.info("Hook 配置已写入 %s", claude_dir)
+    logger.info("会话 Hook 配置已写入 %s", claude_dir)
 
 
 def _safe_dirname(key: str) -> str:
