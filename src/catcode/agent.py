@@ -24,7 +24,7 @@ async def run_agent(
     Path(cwd).mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
-    env.setdefault("CLAUDE_CODE_SIMPLE", "1")
+    env.pop("CLAUDE_CODE_SIMPLE", None)  # bare 模式会跳过 hooks
     env["CATCODE_SERVER_URL"] = f"http://localhost:{hook_port}"
     env["CATCODE_CONVERSATION_ID"] = conv_id
     env["CATCODE_CHANNEL_TYPE"] = channel_type
