@@ -97,6 +97,19 @@ class FeishuChannel(AbstractChannel):
         result = await self._client.send(conversation_id, feishu_card)
         return result.message_id
 
+    async def update_approval_card(
+        self, message_id: str, cmd: str, approved: bool
+    ) -> None:
+        """将审批卡片原地更新为决策结果（移除按钮）。"""
+        label = "✅ 已批准" if approved else "❌ 已拒绝"
+        color = "green" if approved else "red"
+        updated_card = _build_feishu_card({
+            "header": label,
+            "header_color": color,
+            "body": f"```\n{cmd}\n```",
+        })
+        await self._client.edit_message(message_id, updated_card)
+
 
 def _build_feishu_card(card: dict) -> dict:
     """构建飞书交互卡片"""

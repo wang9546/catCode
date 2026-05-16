@@ -78,9 +78,16 @@ class Gateway:
             approval_id = value.get("approval_id", "")
             if approval_id and approval_id in self._pending_approvals:
                 action = value.get("action")
-                self._pending_approvals[approval_id]["status"] = (
-                    "approved" if action == "approve" else "denied"
-                )
+                approved = action == "approve"
+                entry = self._pending_approvals[approval_id]
+                entry["status"] = "approved" if approved else "denied"
+
+                channel = self._channels.get(entry.get("channel_type", ""))
+                card_msg_id = entry.get("card_message_id")
+                if channel and card_msg_id:
+                    await channel.update_approval_card(
+                        card_msg_id, entry.get("cmd", ""), approved
+                    )
 
         coros = [
             self._start_http_server(),
@@ -113,11 +120,16 @@ class Gateway:
             if not channel:
                 return web.json_response({"error": "channel not found"}, status=404)
 
-            approval_id = str(uuid.uuid4())[:8]
-            self._pending_approvals[approval_id] = {"status": "pending"}
-
             tool_input = tool_info.get("tool_input", {})
             cmd = tool_input.get("command", json.dumps(tool_input))
+
+            approval_id = str(uuid.uuid4())[:8]
+            self._pending_approvals[approval_id] = {
+                "status": "pending",
+                "card_message_id": None,
+                "channel_type": channel_type,
+                "cmd": cmd,
+            }
 
             card = {
                 "header": "⚠️ 需要批准",
@@ -136,7 +148,8 @@ class Gateway:
                     },
                 ],
             }
-            await channel.send_card(conv_id, card)
+            card_msg_id = await channel.send_card(conv_id, card)
+            self._pending_approvals[approval_id]["card_message_id"] = card_msg_id
             logger.info("发送审批卡片 approval_id=%s cmd=%.80s", approval_id, cmd)
             return web.json_response({"request_id": approval_id})
 

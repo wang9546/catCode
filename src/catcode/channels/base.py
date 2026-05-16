@@ -49,3 +49,9 @@ class AbstractChannel(ABC):
         """发送交互卡片消息。默认回退到 send 文本。"""
         title = card.get("header", {}).get("title", {}).get("content", "")
         return await self.send(conversation_id, str(title))
+
+    async def update_approval_card(
+        self, message_id: str, cmd: str, approved: bool
+    ) -> None:
+        """将审批卡片更新为结果状态（无按钮）。默认无操作。"""
+        pass
