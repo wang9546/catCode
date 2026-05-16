@@ -25,6 +25,27 @@ SERVER="${CATCODE_SERVER_URL:-http://localhost:8080}"
 CONV_ID="${CATCODE_CONVERSATION_ID}"
 CHANNEL="${CATCODE_CHANNEL_TYPE:-feishu}"
 
+CMD=$(echo "$TOOL_INPUT" | python3 -c \
+  "import json,sys; print(json.load(sys.stdin).get('tool_input',{}).get('command',''))" 2>/dev/null)
+
+# 只拦截有副作用的危险操作，其余直接放行
+needs_approval() {
+  local cmd="$1"
+  # 网络请求
+  echo "$cmd" | grep -qE '\\bcurl\\b|\\bwget\\b|\\bssh\\b|\\bscp\\b|\\brsync\\b.*@' && return 0
+  # 破坏性删除
+  echo "$cmd" | grep -qE '\\brm\\b.*-[a-z]*r[a-z]*f|\\brm\\b.*-[a-z]*f[a-z]*r|\\brm\\s+-rf|\\brm\\s+-fr' && return 0
+  # 提权
+  echo "$cmd" | grep -qE '\\bsudo\\b|\\bsu\\b ' && return 0
+  # 全局包安装
+  echo "$cmd" | grep -qE 'pip install|pip3 install|apt(-get)? install|npm install -g|brew install' && return 0
+  return 1
+}
+
+if ! needs_approval "$CMD"; then
+  exit 0
+fi
+
 RESPONSE=$(echo "$TOOL_INPUT" | curl -sf -X POST "$SERVER/hook/approval" \\
   -H "Content-Type: application/json" \\
   -H "X-Conversation-Id: $CONV_ID" \\
