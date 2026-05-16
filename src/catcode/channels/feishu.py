@@ -108,7 +108,7 @@ class FeishuChannel(AbstractChannel):
             "header_color": color,
             "body": f"```\n{cmd}\n```",
         })
-        await self._client.edit_message(message_id, updated_card)
+        await self._client.update_card(message_id, updated_card["card"])
 
 
 def _build_feishu_card(card: dict) -> dict:
