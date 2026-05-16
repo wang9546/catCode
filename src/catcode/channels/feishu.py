@@ -104,11 +104,11 @@ def _build_feishu_card(card: dict) -> dict:
 
     if card.get("body"):
         elements.append({
-            "tag": "markdown",
-            "content": card["body"],
+            "tag": "div",
+            "text": {"tag": "lark_md", "content": card["body"]},
         })
     else:
-        elements.append({"tag": "markdown", "content": ""})
+        elements.append({"tag": "div", "text": {"tag": "lark_md", "content": ""}})
 
     if card.get("buttons"):
         actions = []
