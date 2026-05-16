@@ -92,12 +92,14 @@ async def _call_claude(
     return output or "已完成（无文字输出）"
 
 
-def _extract_blocked_command(text: str) -> str | None:
+def _extract_blocked_command(text: str) -> str:
     """从 Claude 的权限提示中提取被拒绝的命令。"""
+    # 优先提取反引号中的命令
     matches = _PERMISSION_CMD_RE.findall(text)
     if matches:
-        return matches[-1]  # 取最后一个（通常是实际命令）
-    return None
+        return matches[-1]
+    # 没有反引号时，返回简短的描述
+    return "a blocked command (check description)"
 
 
 def reset_session(cwd: str) -> None:
