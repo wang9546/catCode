@@ -32,13 +32,27 @@ CMD=$(echo "$TOOL_INPUT" | python3 -c \
 needs_approval() {
   local cmd="$1"
   # 网络请求
-  echo "$cmd" | grep -qE '\\bcurl\\b|\\bwget\\b|\\bssh\\b|\\bscp\\b|\\brsync\\b.*@' && return 0
+  echo "$cmd" | grep -qE '\\bcurl\\b|\\bwget\\b|\\bssh\\b|\\bscp\\b|\\brsync\\b.*@|\\bnc\\b|\\bnetcat\\b' && return 0
   # 破坏性删除
-  echo "$cmd" | grep -qE '\\brm\\b.*-[a-z]*r[a-z]*f|\\brm\\b.*-[a-z]*f[a-z]*r|\\brm\\s+-rf|\\brm\\s+-fr' && return 0
+  echo "$cmd" | grep -qE '\\brm\\b.+-[a-z]*r|\\brm\\b.+-[a-z]*f' && return 0
+  # 磁盘/分区操作
+  echo "$cmd" | grep -qE '\\bdd\\b|\\bmkfs\\b|\\bfdisk\\b|\\bparted\\b|\\bgdisk\\b|\\bshred\\b|\\bwipe\\b' && return 0
   # 提权
   echo "$cmd" | grep -qE '\\bsudo\\b|\\bsu\\b ' && return 0
-  # 全局包安装
-  echo "$cmd" | grep -qE 'pip install|pip3 install|apt(-get)? install|npm install -g|brew install' && return 0
+  # 进程终止
+  echo "$cmd" | grep -qE '\\bkill\\b|\\bpkill\\b|\\bkillall\\b' && return 0
+  # 系统关机/重启
+  echo "$cmd" | grep -qE '\\breboot\\b|\\bshutdown\\b|\\bhalt\\b|\\bpoweroff\\b|\\binit\\b [016]' && return 0
+  # 服务管理（停止/禁用）
+  echo "$cmd" | grep -qE 'systemctl (stop|disable|mask|kill)|service .* stop' && return 0
+  # 防火墙规则
+  echo "$cmd" | grep -qE '\\biptables\\b|\\bnft\\b|\\bufw\\b' && return 0
+  # 用户/权限管理
+  echo "$cmd" | grep -qE '\\buseradd\\b|\\buserdel\\b|\\busermod\\b|\\bpasswd\\b|\\bchown\\b.+-R|\\bchmod\\b.+-R' && return 0
+  # 定时任务
+  echo "$cmd" | grep -qE 'crontab\\b' && return 0
+  # 全局包安装/卸载
+  echo "$cmd" | grep -qE 'pip3? (install|uninstall)|apt(-get)? (install|remove|purge)|npm (install -g|uninstall -g)|brew (install|uninstall)' && return 0
   return 1
 }
 
