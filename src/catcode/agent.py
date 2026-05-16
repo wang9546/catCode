@@ -15,7 +15,7 @@ CLAUDE_BIN = shutil.which("claude") or "claude"
 
 # Claude 输出"需要批准"时的提示模式
 _PERMISSION_DENIED_RE = re.compile(
-    r"该命令需要(?:你的|您在 UI 中)批准",
+    r"该命令需要(?:你|您)(?:的|在 UI 中)批准",
     re.IGNORECASE,
 )
 # 提取被拒绝的命令: `curl https://...`
