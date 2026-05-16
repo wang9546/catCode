@@ -20,3 +20,4 @@ FEISHU_APP_SECRET = os.getenv("FEISHU_APP_SECRET", "")
 
 # ── 通用配置 ──────────────────────────────
 WORK_DIR = os.getenv("WORK_DIR", "/root/workspace")
+HOOK_PORT = int(os.getenv("CATCODE_HOOK_PORT", "8080"))

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def main_async():
-    gateway = Gateway(work_dir=config.WORK_DIR)
+    gateway = Gateway(work_dir=config.WORK_DIR, hook_port=config.HOOK_PORT)
 
     # 注册飞书渠道
     if config.FEISHU_APP_ID and config.FEISHU_APP_SECRET:
